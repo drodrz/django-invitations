@@ -82,7 +82,7 @@ class Invitation(models.Model):
             inviter=self.event.organizer)
 
     def __str__(self):
-        return "Invite: {0}".format(self.email)
+        return self.name
 
 
 class InvitationsAdapter(DefaultAccountAdapter):
