@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import redirect
 from django.utils.crypto import get_random_string
+from django.db.models import Q
 
 from braces.views import LoginRequiredMixin
 from allauth.account.adapter import get_adapter
@@ -16,6 +17,7 @@ from . import signals
 from .app_settings import app_settings
 from .mixins import MultiSerializerViewSetMixin
 from .serializers import InvitationSerializer, InvitationListSerializer
+
 
 class SendInvite(LoginRequiredMixin, FormView):
     template_name = 'invitations/forms/_invite.html'
@@ -87,7 +89,10 @@ class InvitationViewSet(MultiSerializerViewSetMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        return Invitation.objects.all()
+        # Return all events where user is either the organizer or planner
+        events = Event.objects.filter(Q(attendees__user=user, attendees__planner=True) | Q(organizer=user)).distinct()
+        #return Invitation.objects.filter(event=events)
+        return Invitation.objects.all_valid()
 
     def perform_create(self, serializer):
         instance = serializer.save(key=get_random_string(64))
