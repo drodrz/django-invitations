@@ -4,7 +4,7 @@ from django.utils.translation import ugettext_lazy as _
 from allauth.account.adapter import get_adapter
 
 from .models import Invitation
-
+from events.models import Event
 
 class CleanEmailMixin(object):
 
@@ -28,9 +28,20 @@ class InviteForm(forms.Form, CleanEmailMixin):
         label=_("E-mail"),
         required=True,
         widget=forms.TextInput(attrs={"type": "email", "size": "30"}))
+    name = forms.CharField(
+        label=_("Name"),
+        required=True,
+        widget=forms.TextInput())
+    event = forms.ModelChoiceField(
+        queryset=Event.objects.all(),
+        label=_("Event"),
+        required=True,
+        widget=forms.TextInput())
 
-    def save(self, email):
-        return Invitation.create(email=email)
+    def save(self, email, name, event):
+        return Invitation.create(email=email,
+                                 name=name,
+                                 event=event,)
 
 
 class InvitationAdminAddForm(forms.ModelForm, CleanEmailMixin):
@@ -38,6 +49,16 @@ class InvitationAdminAddForm(forms.ModelForm, CleanEmailMixin):
         label=_("E-mail"),
         required=True,
         widget=forms.TextInput(attrs={"type": "email", "size": "30"}))
+    name = forms.CharField(
+        label=_("Name"),
+        required=True,
+        widget=forms.TextInput(attrs={"type": "email", "size": "30"}))
+    event = forms.ModelChoiceField(
+        queryset=Event.objects.all(),
+        label=_("Event"),
+        required=True,
+        widget=forms.TextInput(attrs={"type": "email", "size": "30"}))
+
 
     def save(self, *args, **kwargs):
         cleaned_data = super(InvitationAdminAddForm, self).clean()

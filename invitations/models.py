@@ -7,10 +7,12 @@ from django.utils.crypto import get_random_string
 from django.utils.encoding import python_2_unicode_compatible
 from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
+from django.conf import settings
 
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.adapter import get_adapter
 
+from events.models import Event
 from .managers import InvitationManager
 from .app_settings import app_settings
 from . import signals
@@ -19,7 +21,9 @@ from . import signals
 @python_2_unicode_compatible
 class Invitation(models.Model):
 
-    email = models.EmailField(unique=True, verbose_name=_('e-mail address'))
+    name = models.CharField(max_length=255, verbose_name='name', null=True)
+    email = models.EmailField(max_length=255, verbose_name=_('e-mail address'))
+    event = models.ForeignKey(Event, related_name='invitees', null=True)
     accepted = models.BooleanField(verbose_name=_('accepted'), default=False)
     created = models.DateTimeField(verbose_name=_('created'),
                                    default=timezone.now)
@@ -29,10 +33,13 @@ class Invitation(models.Model):
     objects = InvitationManager()
 
     @classmethod
-    def create(cls, email):
+    def create(cls, email, name, event):
         key = get_random_string(64).lower()
+        print('Creating invite key:', key)
         instance = cls._default_manager.create(
+            name=name,
             email=email,
+            event=event,
             key=key)
         return instance
 
@@ -49,10 +56,13 @@ class Invitation(models.Model):
                              args=[self.key])
         invite_url = request.build_absolute_uri(invite_url)
 
+        print(self.event, type(self.event))
         ctx = {
             'invite_url': invite_url,
-            'site_name': current_site.name,
+            'site_name': 'Bachinit',
+            'name': self.name,
             'email': self.email,
+            'event': self.event,
             'key': self.key,
         }
 
@@ -69,10 +79,10 @@ class Invitation(models.Model):
             sender=self.__class__,
             instance=self,
             invite_url_sent=invite_url,
-            inviter=request.user)
+            inviter=self.event.organizer)
 
     def __str__(self):
-        return "Invite: {0}".format(self.email).encode('utf8')
+        return "Invite: {0}".format(self.email)
 
 
 class InvitationsAdapter(DefaultAccountAdapter):
